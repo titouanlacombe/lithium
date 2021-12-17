@@ -1,6 +1,6 @@
 body {
 	font-family: Verdana, Geneva, Tahoma, sans-serif;
-	background: #969696;
+	background: #b8b8b8;
 	margin: 20px;
 }
 
@@ -16,15 +16,16 @@ a {
 #title {
 	margin: 0px;
 	color: #470057;
+	text-decoration: underline;
 }
 
 #author {
 	margin: 0px;
+	font-style: italic;
 	color: #363636;
 }
 
 #summary h3 {
-	color: #363636;
 	text-decoration: underline;
 }
 
@@ -32,11 +33,13 @@ a {
 	margin: 0px;
 }
 
-h2, h3, h4, h5 {
-	margin-bottom: 0px;
+h1, h2, h3, h4, h5 {
+	margin: 0px;
+	font-weight:100;
 }
 
 p {
-	margin: 5px;
-	margin-left: 15px;
+	margin-bottom: 20px;
+	margin-top: 5px;
+	margin-left: 20px;
 }
