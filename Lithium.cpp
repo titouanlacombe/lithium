@@ -162,6 +162,7 @@ void compile(ifstream& input, ofstream& output)
 	// Creating html
 	// Head
 	output << "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"UTF-8\">\n";
+	output << "<link rel=\"stylesheet\" href=\"style.css\">\n";
 	// Title of the tab
 	output << "<title>" << title << "</title>\n";
 
@@ -169,7 +170,7 @@ void compile(ifstream& input, ofstream& output)
 	output << "</head>\n<body>\n";
 
 	// Create summary
-	output << "<div id=\"summary\">\n<h3>Table des matieres</h3>\n";
+	output << "<div id=\"summary\">\n<h3>Table des matieres :</h3>\n";
 	int last_level = -1;
 	for (Section* s : sections) {
 		// Create indentation
@@ -185,8 +186,8 @@ void compile(ifstream& input, ofstream& output)
 	}
 	output << "</ul>\n</div>\n";
 
-	output << "<div id=\"header\">\n<h1>" << title << "</h1>\n";
-	output << "<h3>" << author << "</h3>\n</div>\n";
+	output << "<div id=\"header\">\n<h1 id=\"title\">" << title << "</h1>\n";
+	output << "<h3 id=\"author\">" << author << "</h3>\n</div>\n";
 
 	// Filling body
 	for (Token* t : tokens) {

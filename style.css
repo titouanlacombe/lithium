@@ -1,0 +1,42 @@
+body {
+	font-family: Verdana, Geneva, Tahoma, sans-serif;
+	background: #969696;
+	margin: 20px;
+}
+
+a {
+	color: #294b88;
+}
+
+#header {
+	text-align: center;
+	margin: 40px;
+}
+
+#title {
+	margin: 0px;
+	color: #470057;
+}
+
+#author {
+	margin: 0px;
+	color: #363636;
+}
+
+#summary h3 {
+	color: #363636;
+	text-decoration: underline;
+}
+
+#summary ul {
+	margin: 0px;
+}
+
+h2, h3, h4, h5 {
+	margin-bottom: 0px;
+}
+
+p {
+	margin: 5px;
+	margin-left: 15px;
+}
