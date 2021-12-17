@@ -31,6 +31,7 @@ public:
 };
 
 int nb_sections = 0;
+int last_level = -1;
 
 class Section : public Token
 {
@@ -49,17 +50,31 @@ public:
 		name = _name;
 	}
 
+	void create_indentation(ofstream& output, string opening, string closing)
+	{
+		if (level > last_level) {
+			output << opening;
+		}
+		else if (level < last_level) {
+			output << closing;
+		}
+		last_level = level;
+	}
+
 	void create_code(ofstream& output)
 	{
+		static int last_level = 0;
 		string level_str = to_string(level + 2);
 		string opening_tag = "<h" + level_str + " id=\"" + to_string(id) + "\">";
 		string closing_tag = "</h" + level_str + ">";
 
+		create_indentation(output, "<div class=\"section\">\n", "</div>\n");
 		output << opening_tag << name << closing_tag << "\n";
 	}
 
 	void create_summary_entry(ofstream& output)
 	{
+		create_indentation(output, "<ul>\n", "</ul>\n");
 		output << "<li><a href=\"#" + to_string(id) + "\">" << name << "</a></li>\n";
 	}
 };
@@ -171,17 +186,8 @@ void compile(ifstream& input, ofstream& output)
 
 	// Create summary
 	output << "<div id=\"summary\">\n<h3>Table des matieres :</h3>\n";
-	int last_level = -1;
+	last_level = -1;
 	for (Section* s : sections) {
-		// Create indentation
-		if (s->level > last_level) {
-			output << "<ul>\n";
-		}
-		else if (s->level < last_level) {
-			output << "</ul>\n";
-		}
-		last_level = s->level;
-
 		s->create_summary_entry(output);
 	}
 	output << "</ul>\n</div>\n";
@@ -190,6 +196,7 @@ void compile(ifstream& input, ofstream& output)
 	output << "<h3 id=\"author\">" << author << "</h3>\n</div>\n";
 
 	// Filling body
+	last_level = -1;
 	for (Token* t : tokens) {
 		t->create_code(output);
 	}

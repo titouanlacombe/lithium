@@ -25,6 +25,10 @@ a {
 	color: #363636;
 }
 
+#summary {
+	margin: 20px;
+}
+
 #summary h3 {
 	text-decoration: underline;
 }
@@ -39,7 +43,16 @@ h1, h2, h3, h4, h5 {
 }
 
 p {
-	margin-bottom: 20px;
 	margin-top: 5px;
 	margin-left: 20px;
+	margin-bottom: 20px;
+}
+
+.section {
+	padding: 10px;
+	margin: 10px;
+	margin-left: 20px;
+	padding-left: 20px;
+	background: rgba(0, 0, 0, 0.15);
+	border-radius: 20px;
 }
