@@ -37,12 +37,11 @@ public:
 	{
 		string result;
 
-		char c;
-		do {
-			c = get();
+		char c = get();
+		while (c != delimiter) {
 			result.push_back(c);
+			c = get();
 		}
-		while (c != delimiter);
 
 		return result;
 	}
