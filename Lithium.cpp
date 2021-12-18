@@ -91,6 +91,7 @@ public:
 
 class TreeNode
 {
+protected:
 	list<TreeNode*> childrens;
 	TreeNode* parent = nullptr;
 
@@ -146,28 +147,29 @@ public:
 
 class Section : public TreeNode
 {
+	Section* parent; // Overide of parent type
+
 	string name;
 	list<int> id;
+	list<Section*> sub_sections;
 
 public:
-	Section(string _name, Section* parent = nullptr, bool parent_is_brother = false)
+	Section(string _name, Section* current = nullptr, bool current_is_brother = false)
 	{
 		name = _name;
 
-		if (parent == nullptr) {
-			// Init the list to [1]
-			id.push_back(1);
-		}
-		else {
-			id = list<int>(parent->id);
-			if (parent_is_brother) {
-				parent->get_parent()->push_back_child(this);
+		if (current != nullptr) {
+			id = list<int>(current->id); // copy current id
+
+			if (current_is_brother) {
+				current->parent->add_sub_section(this);
 
 				// Indent the last id number (1.1 => 1.2)
 				id.back()++;
 			}
 			else {
-				parent->push_back_child(this);
+				// current is father
+				current->add_sub_section(this);
 
 				// Add a new number (2.1 => 2.1.1)
 				id.push_back(1);
@@ -175,33 +177,89 @@ public:
 		}
 	}
 
-	// TODO 3 next functions
-	void create_indentation(ofstream& output, string opening, string closing)
+	Section* get_parent()
 	{
-		if (level > last_level) {
-			output << opening;
+		return parent;
+	}
+
+	string get_id_str()
+	{
+		string s;
+		for (int i : id) {
+			if (i == id.back()) {
+				s += to_string(i);
+			}
+			else {
+				s += to_string(i) + '.';
+			}
 		}
-		else if (level < last_level) {
-			output << closing;
+		return s;
+	}
+
+	void create_child_sections(ofstream& output, bool write_self)
+	{
+		int level = id.size();
+		string id_str = get_id_str();
+
+		output << "<div class='section'>\n";
+
+		if (write_self) {
+			output << "<h" + to_string(level + 2) + " id='" + id_str + "'>" << id_str + " " + name
+				<< "</h" + to_string(level + 2) + ">" << "\n";
 		}
-		last_level = level;
+
+		TreeNode::encode_childrens(output);
+
+		output << "</div>\n";
 	}
 
 	void encode_to(ofstream& output)
 	{
-		static int last_level = 0;
-		string level_str = to_string(level + 2);
-		string opening_tag = "<h" + level_str + " id='" + to_string(id) + "'>";
-		string closing_tag = "</h" + level_str + ">";
+		create_child_sections(output, true);
+	}
 
-		create_indentation(output, "<div class='section'>\n", "</div>\n");
-		output << opening_tag << name << closing_tag << "\n";
+	void create_child_summary(ofstream& output)
+	{
+		if (sub_sections.size() != 0) {
+			output << "<ul>\n";
+			for (Section* s : sub_sections) {
+				s->create_summary_entry(output);
+			}
+			output << "</ul>\n";
+		}
 	}
 
 	void create_summary_entry(ofstream& output)
 	{
-		create_indentation(output, "<ul>\n", "</ul>\n");
-		output << "<li><a href='#" + to_string(id) + "'>" << name << "</a></li>\n";
+		string id_str = get_id_str();
+		output << "<li><a href='#" + id_str + "'>" << id_str + " " + name << "</a></li>\n";
+		create_child_summary(output);
+	}
+
+	void add_sub_section(Section* s)
+	{
+		push_back_child(s);
+		sub_sections.push_back(s);
+	}
+};
+
+class MainSection : public Section
+{
+	TreeNode* parent;
+
+public:
+	MainSection()
+		: Section("main")
+	{}
+
+	void encode_to(ofstream& output)
+	{
+		create_child_sections(output, false);
+	}
+
+	void create_summary_entry(ofstream& output)
+	{
+		create_child_summary(output);
 	}
 };
 
@@ -381,6 +439,7 @@ void compile(ifstream& input, ofstream& output)
 	PageAuthor* author = nullptr;
 	PageTitle* title = nullptr;
 	list<Section*> sections;
+	Section* current_section = new MainSection();
 	HTML root;
 
 	// Creation of the facade
@@ -388,6 +447,7 @@ void compile(ifstream& input, ofstream& output)
 
 	// TODO: add paragraphes to sections (don't forget first p doesn't have a section)
 	// Searching tokens
+	int current_section_level = 0;
 	string buffer;
 	char c;
 	int result;
@@ -432,7 +492,28 @@ void compile(ifstream& input, ofstream& output)
 			name = facade.get('\n');
 
 			// Section(name, parent, parent_is_brother)
-			Section* s = new Section(name, parent, parent_is_brother);
+			bool brother;
+			Section* parent;
+			if (level == current_section_level) {
+				brother = true;
+				parent = current_section;
+			}
+			// Replace with while or error if multiple indentation at once
+			else if (level > current_section_level) {
+				brother = false;
+				parent = current_section;
+			}
+			// Replace with while or error if multiple indentation at once
+			else {
+				brother = true;
+				parent = current_section->get_parent();
+			}
+
+			Section* s = new Section(name, parent, brother);
+
+			// if indent level < take current parent to go back an indent level
+			current_section_level = level;
+			current_section = s;
 			root.add_to_body(s);
 			sections.push_back(s);
 		}
@@ -447,11 +528,11 @@ void compile(ifstream& input, ofstream& output)
 			while (!buffer.empty());
 
 			Paragraph* p = new Paragraph(text);
-			root.add_to_body(p);
+			current_section->push_back_child(p);
 		}
 	}
 
-	// Validating tokens
+	// Validating tree
 	root.validate();
 
 	// Creating html
