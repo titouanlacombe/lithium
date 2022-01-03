@@ -54,7 +54,11 @@ public:
 	{
 		int i = input->get();
 
-		debug_pos(i);
+		// debug_pos(i);
+
+		if (i == EOF) {
+			return i;
+		}
 
 		if (i == '\n') {
 			lines_read++;
@@ -70,15 +74,14 @@ public:
 
 	string get(char delimiter)
 	{
-		string result;
+		string buffer;
 
-		char c = get();
-		while (c != delimiter) {
-			result.push_back(c);
-			c = get();
+		int result;
+		while ((result = get()) != EOF && result != delimiter) {
+			buffer.push_back((char)result);
 		}
 
-		return result;
+		return buffer;
 	}
 
 	void get_pos(int& line, int& chars)
@@ -161,6 +164,8 @@ public:
 
 	void validate()
 	{
+		cout << this << endl;
+		cout << childrens.size() << endl;
 		validate_childrens();
 	}
 
@@ -199,7 +204,6 @@ public:
 			id = list<int>(current->id); // copy current id
 
 			if (current_is_brother) {
-				cout << current->parent << endl;
 				((Section*)current->parent)->add_sub_section(this);
 
 				// Indent the last id number (1.1 => 1.2)
@@ -418,19 +422,20 @@ public:
 
 class HTML : public TreeNode
 {
-	HTML_Header* h;
-	HTML_Body* b;
+	HTML_Header* header;
+	HTML_Body* body;
 
-	PageTitle* t = nullptr;
-	PageAuthor* a = nullptr;
+	PageTitle* title = nullptr;
+	PageAuthor* author = nullptr;
 
 public:
 	HTML()
 	{
-		h = new HTML_Header();
-		b = new HTML_Body();
-		TreeNode::push_back_child(h);
-		TreeNode::push_back_child(b);
+		header = new HTML_Header();
+		body = new HTML_Body();
+
+		TreeNode::push_back_child(header);
+		TreeNode::push_back_child(body);
 	}
 
 	void encode_to(ofstream& output)
@@ -442,34 +447,34 @@ public:
 	}
 
 	// Need a function to do it in differed because the title can be anywhere
-	void link_page_header(list<Section*> sections, PageTitle* title, PageAuthor* author)
+	void link_page_header(list<Section*> sections, PageTitle* _title, PageAuthor* _author)
 	{
-		t = title;
-		a = author;
+		title = _title;
+		author = _author;
 
-		h->push_back_child(new TabTitle(title));
+		header->push_back_child(new TabTitle(title));
 
 		// In reversed order of appearance
-		b->push_front_child(author);
-		b->push_front_child(title);
-		b->push_front_child(new Summary(sections));
+		body->push_front_child(author);
+		body->push_front_child(title);
+		body->push_front_child(new Summary(sections));
 	}
 
 	void add_to_body(TreeNode* n)
 	{
-		b->push_back_child(n);
+		body->push_back_child(n);
 	}
 
 	void validate()
 	{
-		if (t == nullptr) {
+		if (title == nullptr) {
 			throw ValidationError("Title not found");
 		}
-		if (a == nullptr) {
+		if (author == nullptr) {
 			throw ValidationError("Author not found");
 		}
 
-		TreeNode::validate_childrens();
+		TreeNode::validate();
 	}
 };
 
@@ -486,6 +491,8 @@ void compile(ifstream& input, ofstream& output)
 	PageAuthor* author = nullptr;
 	PageTitle* title = nullptr;
 	list<Section*> sections;
+
+	cout << "Tokenizing..." << endl;
 
 	// TODO: add paragraphes to sections (don't forget first p doesn't have a section)
 	// Searching tokens
@@ -577,9 +584,11 @@ void compile(ifstream& input, ofstream& output)
 	root.link_page_header(sections, title, author);
 
 	// Validating tree
+	cout << "Validating..." << endl;
 	root.validate();
 
-	// Creating html
+	// Encoding html
+	cout << "Encoding..." << endl;
 	root.encode_to(output);
 }
 
