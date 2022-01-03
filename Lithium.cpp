@@ -174,11 +174,7 @@ public:
 	void push_back_child(TreeNode* child)
 	{
 		child->parent = this;
-		cout << "test2" << endl;
-		cout << childrens.size() << endl;
-		cout << child << endl;
 		childrens.push_back(child);
-		cout << "test3" << endl;
 	}
 
 	void push_front_child(TreeNode* child)
@@ -190,8 +186,6 @@ public:
 
 class Section : public TreeNode
 {
-	Section* parent; // Overide of parent type
-
 	string name;
 	list<int> id;
 	list<Section*> sub_sections;
@@ -205,7 +199,8 @@ public:
 			id = list<int>(current->id); // copy current id
 
 			if (current_is_brother) {
-				current->parent->add_sub_section(this);
+				cout << current->parent << endl;
+				((Section*)current->parent)->add_sub_section(this);
 
 				// Indent the last id number (1.1 => 1.2)
 				id.back()++;
@@ -222,7 +217,7 @@ public:
 
 	Section* get_parent()
 	{
-		return parent;
+		return (Section*)parent;
 	}
 
 	string get_id_str()
