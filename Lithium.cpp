@@ -54,7 +54,7 @@ public:
 	{
 		int i = input->get();
 
-		debug_pos(i);
+		// debug_pos(i);
 
 		if (i == EOF) {
 			return i;
@@ -332,7 +332,7 @@ public:
 
 	virtual void encode_to(ofstream& output)
 	{
-		output << "<p>" << text << "</p>\n";
+		output << "<p>\n" << text << "</p>\n";
 	}
 };
 
@@ -613,6 +613,8 @@ void compile(ifstream& input, ofstream& output)
 	// Encoding html
 	cout << "Encoding..." << endl;
 	root.encode_to(output);
+
+	cout << "Done !" << endl;
 }
 
 int main(int argc, char const* argv[])
