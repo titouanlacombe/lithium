@@ -54,7 +54,7 @@ public:
 	{
 		int i = input->get();
 
-		// debug_pos(i);
+		debug_pos(i);
 
 		if (i == EOF) {
 			return i;
@@ -138,6 +138,12 @@ protected:
 	TreeNode* parent = nullptr;
 
 public:
+	string type;
+	TreeNode()
+	{
+		type = "TreeNode";
+	}
+
 	~TreeNode()
 	{
 		for (TreeNode* child : childrens) {
@@ -150,7 +156,7 @@ public:
 		return parent;
 	}
 
-	void encode_to(ofstream& output)
+	virtual void encode_to(ofstream& output)
 	{
 		encode_childrens(output);
 	}
@@ -162,10 +168,9 @@ public:
 		}
 	}
 
-	void validate()
+	virtual void validate()
 	{
-		cout << this << endl;
-		cout << childrens.size() << endl;
+		// cout << "Type: " + type << endl;
 		validate_childrens();
 	}
 
@@ -189,52 +194,37 @@ public:
 	}
 };
 
-class Section : public TreeNode
+class BodySection : public TreeNode
 {
+public:
 	string name;
 	list<int> id;
-	list<Section*> sub_sections;
 
-public:
-	Section(string _name, Section* current = nullptr, bool current_is_brother = false)
+	BodySection(string _name)
 	{
 		name = _name;
-
-		if (current != nullptr) {
-			id = list<int>(current->id); // copy current id
-
-			if (current_is_brother) {
-				((Section*)current->parent)->add_sub_section(this);
-
-				// Indent the last id number (1.1 => 1.2)
-				id.back()++;
-			}
-			else {
-				// current is father
-				current->add_sub_section(this);
-
-				// Add a new number (2.1 => 2.1.1)
-				id.push_back(1);
-			}
-		}
+		type = "BodySection: " + name;
 	}
 
-	Section* get_parent()
+	BodySection* get_parent()
 	{
-		return (Section*)parent;
+		return (BodySection*)parent;
+	}
+
+	void set_id(list<int> _id)
+	{
+		id = list<int>(_id);
 	}
 
 	string get_id_str()
 	{
 		string s;
+
 		for (int i : id) {
-			if (i == id.back()) {
-				s += to_string(i);
-			}
-			else {
-				s += to_string(i) + '.';
-			}
+			s += to_string(i) + '.';
 		}
+		s.pop_back();
+
 		return s;
 	}
 
@@ -244,7 +234,7 @@ public:
 		return "h" + to_string(level + 2);
 	}
 
-	void encode_to(ofstream& output)
+	virtual void encode_to(ofstream& output)
 	{
 		output << "<div class='section'>\n";
 
@@ -257,53 +247,75 @@ public:
 
 		output << "</div>\n";
 	}
-
-	void create_child_summary(ofstream& output)
-	{
-		if (sub_sections.size() != 0) {
-			output << "<ul>\n";
-			for (Section* s : sub_sections) {
-				s->create_summary_entry(output);
-			}
-			output << "</ul>\n";
-		}
-	}
-
-	void create_summary_entry(ofstream& output)
-	{
-		string id_str = get_id_str();
-		output << "<li><a href='#" + id_str + "'>" << id_str + " " + name << "</a></li>\n";
-		create_child_summary(output);
-	}
-
-	void add_sub_section(Section* s)
-	{
-		push_back_child(s);
-		sub_sections.push_back(s);
-	}
 };
 
-class MainSection : public Section
+class SummarySection : public BodySection
 {
-	TreeNode* parent;
-
 public:
-	MainSection()
-		: Section("main")
+	SummarySection(BodySection& s)
+		: BodySection(s)
+	{}
+
+	SummarySection(string name)
+		: BodySection(name)
 	{}
 
 	void encode_to(ofstream& output)
 	{
-		output << "<div class='mainSection'>\n";
+		string id_str = get_id_str();
+		output << "<li><a href='#" + id_str + "'>" << id_str + " " + name << "</a></li>\n";
 
-		TreeNode::encode_childrens(output);
+		if (childrens.size() != 0) {
+			output << "<ul>\n";
+			TreeNode::encode_childrens(output);
+			output << "</ul>\n";
+		}
+	}
+};
 
-		output << "</div>\n";
+class MainBodySection : public BodySection
+{
+	TreeNode* parent;
+
+public:
+	MainBodySection()
+		: BodySection("main")
+	{
+		type = "MainBodySection";
 	}
 
-	void create_summary_entry(ofstream& output)
+	TreeNode* get_parent()
 	{
-		create_child_summary(output);
+		return parent;
+	}
+
+	virtual void encode_to(ofstream& output)
+	{
+		output << "<div class='section'>\n";
+		TreeNode::encode_childrens(output);
+		output << "</div>\n";
+	}
+};
+
+class MainSummarySection : public SummarySection
+{
+public:
+	MainSummarySection()
+		: SummarySection("MainSummarySection")
+	{
+		type = "MainSummarySection";
+	}
+
+	TreeNode* get_parent()
+	{
+		return parent;
+	}
+
+	virtual void encode_to(ofstream& output)
+	{
+		output << "<div id='summary'>\n<h3>Table des matieres :</h3>\n<ul>\n";
+		TreeNode::encode_childrens(output);
+		output << "</ul>\n</div>\n";
 	}
 };
 
@@ -315,9 +327,10 @@ public:
 	Paragraph(string _text)
 	{
 		text = _text;
+		type = "Paragraph " + text;
 	}
 
-	void encode_to(ofstream& output)
+	virtual void encode_to(ofstream& output)
 	{
 		output << "<p>" << text << "</p>\n";
 	}
@@ -331,9 +344,10 @@ public:
 	PageAuthor(string _name)
 	{
 		name = _name;
+		type = "PageAuthor " + name;
 	}
 
-	void encode_to(ofstream& output)
+	virtual void encode_to(ofstream& output)
 	{
 		output << "<h3 id='author'>" << name << "</h3>\n";
 	}
@@ -347,6 +361,7 @@ public:
 	PageTitle(string _name)
 	{
 		name = _name;
+		type = "PageTitle " + name;
 	}
 
 	string get_name()
@@ -354,7 +369,7 @@ public:
 		return name;
 	}
 
-	void encode_to(ofstream& output)
+	virtual void encode_to(ofstream& output)
 	{
 		output << "<h1 id='title'>" << name << "</h1>\n";
 	}
@@ -368,38 +383,24 @@ public:
 	TabTitle(PageTitle* _title)
 	{
 		title = _title;
+		type = "TabTitle";
 	}
 
-	void encode_to(ofstream& output)
+	virtual void encode_to(ofstream& output)
 	{
 		output << "<title>" << title->get_name() << "</title>\n";
-	}
-};
-
-class Summary : public TreeNode
-{
-	list<Section*> sections;
-
-public:
-	Summary(list<Section*> _sections)
-	{
-		sections = _sections;
-	}
-
-	void encode_to(ofstream& output)
-	{
-		output << "<div id='summary'>\n<h3>Table des matieres :</h3>\n";
-		for (Section* s : sections) {
-			s->create_summary_entry(output);
-		}
-		output << "</div>\n";
 	}
 };
 
 class HTML_Body : public TreeNode
 {
 public:
-	void encode_to(ofstream& output)
+	HTML_Body()
+	{
+		type = "HTML_Body";
+	}
+
+	virtual void encode_to(ofstream& output)
 	{
 		output << "<body>\n";
 		TreeNode::encode_childrens(output);
@@ -410,7 +411,12 @@ public:
 class HTML_Header : public TreeNode
 {
 public:
-	void encode_to(ofstream& output)
+	HTML_Header()
+	{
+		type = "HTML_Header";
+	}
+
+	virtual void encode_to(ofstream& output)
 	{
 		output << "<head>\n";
 		output << "<meta charset='UTF-8'>\n";
@@ -431,6 +437,8 @@ class HTML : public TreeNode
 public:
 	HTML()
 	{
+		type = "HTML";
+
 		header = new HTML_Header();
 		body = new HTML_Body();
 
@@ -438,7 +446,7 @@ public:
 		TreeNode::push_back_child(body);
 	}
 
-	void encode_to(ofstream& output)
+	virtual void encode_to(ofstream& output)
 	{
 		output << "<!DOCTYPE html>\n";
 		output << "<html lang='en'>\n";
@@ -447,7 +455,7 @@ public:
 	}
 
 	// Need a function to do it in differed because the title can be anywhere
-	void link_page_header(list<Section*> sections, PageTitle* _title, PageAuthor* _author)
+	void link_page_header(MainSummarySection* _summary, PageTitle* _title, PageAuthor* _author)
 	{
 		title = _title;
 		author = _author;
@@ -457,7 +465,7 @@ public:
 		// In reversed order of appearance
 		body->push_front_child(author);
 		body->push_front_child(title);
-		body->push_front_child(new Summary(sections));
+		body->push_front_child(_summary);
 	}
 
 	void add_to_body(TreeNode* n)
@@ -465,7 +473,7 @@ public:
 		body->push_back_child(n);
 	}
 
-	void validate()
+	virtual void validate()
 	{
 		if (title == nullptr) {
 			throw ValidationError("Title not found");
@@ -483,20 +491,25 @@ void compile(ifstream& input, ofstream& output)
 	// Creation of the facade
 	InputFacade facade(&input);
 
-	// Global vars
-	Section* current_section = new MainSection();
+	// Root
 	HTML root;
 
 	// HTML Header
 	PageAuthor* author = nullptr;
 	PageTitle* title = nullptr;
-	list<Section*> sections;
+	MainSummarySection* summary = new MainSummarySection();
+
+	// Global vars
+	BodySection* current_body_s = new MainBodySection();
+	BodySection* current_sum_s = summary;
+	int current_s_lvl = 0;
+
+	// Init
+	root.add_to_body(current_body_s);
 
 	cout << "Tokenizing..." << endl;
 
-	// TODO: add paragraphes to sections (don't forget first p doesn't have a section)
 	// Searching tokens
-	int current_section_level = 0;
 	string buffer;
 	char c;
 	int result;
@@ -523,48 +536,58 @@ void compile(ifstream& input, ofstream& output)
 			}
 		}
 		else if (c == '=') {
-			int level;
-			string name;
-
 			// Compter le niveaux de la section
-			buffer = facade.get(' ');
-			level = 1;
-			while (level < buffer.length()) {
-				// Si les niveaux et le nom ne sont pas séparer par un espace:
-				if (buffer[level] != '=') {
-					throw CompilingError("Bad section level '" + string(1, buffer[level]) + "'", facade);
-				}
+			int level = 1;
+			while ((result = facade.get()) != EOF && (char)result == '=') {
 				level++;
 			}
 
-			// Récuperer le nom
-			name = facade.get('\n');
-
-			// Section(name, parent, parent_is_brother)
-			bool brother;
-			Section* parent;
-			// Replace with while or error if multiple indentation at once
-			if (level > current_section_level) {
-				brother = false;
-				parent = current_section;
+			if ((char)result != ' ') {
+				throw CompilingError("Section equals and name needs to be separated by a space character", facade);
 			}
-			// Replace with while or error if multiple indentation at once
-			else if (level < current_section_level) {
-				brother = true;
-				parent = current_section->get_parent();
+
+			// Make it allowable with a while
+			if (abs(level - current_s_lvl) > 1) {
+				throw CompilingError("More than one identation level change is not allowed", facade);
+			}
+
+			// Récuperer le nom
+			string name = facade.get('\n');
+
+			// Creer les sections
+			BodySection* body_s = new BodySection(name);
+			SummarySection* sum_s = new SummarySection(name);
+
+			// Determiner leur indexation
+			list<int> id = list<int>(current_body_s->id); // copy current id
+
+			if (level > current_s_lvl) {
+				current_body_s->push_back_child(body_s);
+				current_sum_s->push_back_child(sum_s);
+
+				// Add a new number (2.1 => 2.1.1)
+				id.push_back(1);
+			}
+			else if (level < current_s_lvl) {
+				current_body_s->get_parent()->get_parent()->push_back_child(body_s);
+				current_sum_s->get_parent()->get_parent()->push_back_child(sum_s);
+
+				id.pop_back();
+				id.back()++;
 			}
 			else {
-				brother = true;
-				parent = current_section;
+				current_body_s->get_parent()->push_back_child(body_s);
+				current_sum_s->get_parent()->push_back_child(sum_s);
+
+				id.back()++;
 			}
 
-			Section* s = new Section(name, parent, brother);
+			body_s->set_id(id);
+			sum_s->set_id(id);
 
-			// if indent level < take current parent to go back an indent level
-			current_section_level = level;
-			current_section = s;
-			root.add_to_body(s);
-			sections.push_back(s);
+			current_sum_s = sum_s;
+			current_body_s = body_s;
+			current_s_lvl = level;
 		}
 		else {
 			string text;
@@ -577,11 +600,11 @@ void compile(ifstream& input, ofstream& output)
 			while (!buffer.empty());
 
 			Paragraph* p = new Paragraph(text);
-			current_section->push_back_child(p);
+			current_body_s->push_back_child(p);
 		}
 	}
 
-	root.link_page_header(sections, title, author);
+	root.link_page_header(summary, title, author);
 
 	// Validating tree
 	cout << "Validating..." << endl;

@@ -5,6 +5,16 @@
         "iostream": "cpp",
         "*.tcc": "cpp",
         "stdexcept": "cpp",
-        "istream": "cpp"
+        "istream": "cpp",
+        "string": "cpp",
+        "ostream": "cpp",
+        "string_view": "cpp",
+        "array": "cpp",
+        "memory": "cpp",
+        "ranges": "cpp",
+        "tuple": "cpp",
+        "utility": "cpp",
+        "initializer_list": "cpp",
+        "new": "cpp"
     }
 }
