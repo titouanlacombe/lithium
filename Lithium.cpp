@@ -6,6 +6,7 @@
 
 using namespace std;
 
+// Help to print special characters
 string c_to_string(char c)
 {
 	switch (c) {
@@ -36,6 +37,19 @@ public:
 		input = _input;
 	}
 
+	// Set line & chars with the current reading head position
+	void get_pos(int& line, int& chars)
+	{
+		line = lines_read + 1;
+		chars = chars_since_line_start;
+
+		if (chars == 0) {
+			line--;
+			chars = last_line_chars;
+		}
+	}
+
+	// Prints current pos & char
 	void debug_pos(int i)
 	{
 		int lines, chars;
@@ -50,6 +64,7 @@ public:
 		}
 	}
 
+	// Get next char
 	int get()
 	{
 		int i = input->get();
@@ -72,6 +87,7 @@ public:
 		return i;
 	}
 
+	// Get until delimiter or EOF is reached
 	string get(char delimiter)
 	{
 		string buffer;
@@ -82,17 +98,6 @@ public:
 		}
 
 		return buffer;
-	}
-
-	void get_pos(int& line, int& chars)
-	{
-		line = lines_read + 1;
-		chars = chars_since_line_start;
-
-		if (chars == 0) {
-			line--;
-			chars = last_line_chars;
-		}
 	}
 };
 
@@ -138,11 +143,8 @@ protected:
 	TreeNode* parent = nullptr;
 
 public:
-	string type;
 	TreeNode()
-	{
-		type = "TreeNode";
-	}
+	{}
 
 	~TreeNode()
 	{
@@ -151,16 +153,19 @@ public:
 		}
 	}
 
+	// Return parent
 	TreeNode* get_parent()
 	{
 		return parent;
 	}
 
+	// Encode self data to output
 	virtual void encode_to(ofstream& output)
 	{
 		encode_childrens(output);
 	}
 
+	// Encode childrens data to output
 	void encode_childrens(ofstream& output)
 	{
 		for (TreeNode* child : childrens) {
@@ -168,12 +173,13 @@ public:
 		}
 	}
 
+	// Validate self data coherence
 	virtual void validate()
 	{
-		// cout << "Type: " + type << endl;
 		validate_childrens();
 	}
 
+	// Validate childrens data coherence
 	void validate_childrens()
 	{
 		for (TreeNode* child : childrens) {
@@ -181,12 +187,14 @@ public:
 		}
 	}
 
+	// Add a child to the back
 	void push_back_child(TreeNode* child)
 	{
 		child->parent = this;
 		childrens.push_back(child);
 	}
 
+	// Add a child to the front
 	void push_front_child(TreeNode* child)
 	{
 		child->parent = this;
@@ -203,7 +211,6 @@ public:
 	BodySection(string _name)
 	{
 		name = _name;
-		type = "BodySection: " + name;
 	}
 
 	BodySection* get_parent()
@@ -216,6 +223,7 @@ public:
 		id = list<int>(_id);
 	}
 
+	// Return string representation of the id of the section
 	string get_id_str()
 	{
 		string s;
@@ -228,10 +236,10 @@ public:
 		return s;
 	}
 
+	// Return string of HTML section node at the right level
 	string get_h()
 	{
-		int level = id.size();
-		return "h" + to_string(level + 2);
+		return "h" + to_string(id.size() + 2);
 	}
 
 	virtual void encode_to(ofstream& output)
@@ -280,9 +288,7 @@ class MainBodySection : public BodySection
 public:
 	MainBodySection()
 		: BodySection("main")
-	{
-		type = "MainBodySection";
-	}
+	{}
 
 	TreeNode* get_parent()
 	{
@@ -302,9 +308,7 @@ class MainSummarySection : public SummarySection
 public:
 	MainSummarySection()
 		: SummarySection("MainSummarySection")
-	{
-		type = "MainSummarySection";
-	}
+	{}
 
 	TreeNode* get_parent()
 	{
@@ -327,7 +331,6 @@ public:
 	Paragraph(string _text)
 	{
 		text = _text;
-		type = "Paragraph " + text;
 	}
 
 	virtual void encode_to(ofstream& output)
@@ -344,7 +347,6 @@ public:
 	PageAuthor(string _name)
 	{
 		name = _name;
-		type = "PageAuthor " + name;
 	}
 
 	virtual void encode_to(ofstream& output)
@@ -361,7 +363,6 @@ public:
 	PageTitle(string _name)
 	{
 		name = _name;
-		type = "PageTitle " + name;
 	}
 
 	string get_name()
@@ -383,7 +384,6 @@ public:
 	TabTitle(PageTitle* _title)
 	{
 		title = _title;
-		type = "TabTitle";
 	}
 
 	virtual void encode_to(ofstream& output)
@@ -396,9 +396,7 @@ class HTML_Body : public TreeNode
 {
 public:
 	HTML_Body()
-	{
-		type = "HTML_Body";
-	}
+	{}
 
 	virtual void encode_to(ofstream& output)
 	{
@@ -412,9 +410,7 @@ class HTML_Header : public TreeNode
 {
 public:
 	HTML_Header()
-	{
-		type = "HTML_Header";
-	}
+	{}
 
 	virtual void encode_to(ofstream& output)
 	{
@@ -437,8 +433,6 @@ class HTML : public TreeNode
 public:
 	HTML()
 	{
-		type = "HTML";
-
 		header = new HTML_Header();
 		body = new HTML_Body();
 
@@ -468,6 +462,7 @@ public:
 		body->push_front_child(_summary);
 	}
 
+	// Shortcut
 	void add_to_body(TreeNode* n)
 	{
 		body->push_back_child(n);
@@ -504,7 +499,7 @@ void compile(ifstream& input, ofstream& output)
 	BodySection* current_sum_s = summary;
 	int current_s_lvl = 0;
 
-	// Init
+	// Connect main section to node tree
 	root.add_to_body(current_body_s);
 
 	cout << "Tokenizing..." << endl;
@@ -565,26 +560,31 @@ void compile(ifstream& input, ofstream& output)
 				current_body_s->push_back_child(body_s);
 				current_sum_s->push_back_child(sum_s);
 
-				// Add a new number (2.1 => 2.1.1)
+				// Add a new number (2.3 => 2.3.1)
 				id.push_back(1);
 			}
 			else if (level < current_s_lvl) {
 				current_body_s->get_parent()->get_parent()->push_back_child(body_s);
 				current_sum_s->get_parent()->get_parent()->push_back_child(sum_s);
 
+				// Remove number & indent (2.1.2 => 2.2)
 				id.pop_back();
 				id.back()++;
 			}
 			else {
+				// level == current_s_lvl
 				current_body_s->get_parent()->push_back_child(body_s);
 				current_sum_s->get_parent()->push_back_child(sum_s);
 
+				// Indent last number (2.1.2 => 2.1.3)
 				id.back()++;
 			}
 
+			// Set generated id
 			body_s->set_id(id);
 			sum_s->set_id(id);
 
+			// Update current values
 			current_sum_s = sum_s;
 			current_body_s = body_s;
 			current_s_lvl = level;
@@ -593,6 +593,7 @@ void compile(ifstream& input, ofstream& output)
 			string text;
 			text.push_back(c);
 
+			// Append text while no empty line found
 			do {
 				buffer = facade.get('\n');
 				text += buffer;
@@ -604,13 +605,14 @@ void compile(ifstream& input, ofstream& output)
 		}
 	}
 
+	// Link header data at the start of the body
 	root.link_page_header(summary, title, author);
 
-	// Validating tree
+	// Validating node tree
 	cout << "Validating..." << endl;
 	root.validate();
 
-	// Encoding html
+	// Encoding html with tree
 	cout << "Encoding..." << endl;
 	root.encode_to(output);
 
