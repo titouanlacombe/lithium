@@ -6,11 +6,29 @@
 
 using namespace std;
 
+string c_to_string(char c)
+{
+	switch (c) {
+	case '\n':
+		return string("\\n");
+
+	case '\r':
+		return string("\\r");
+
+	case '\t':
+		return string("\\t");
+
+	default:
+		return string(1, c);
+	}
+}
+
 class InputFacade
 {
 	ifstream* input;
-	int lines_read;
-	int chars_since_line_start;
+	int lines_read = 0;
+	int chars_since_line_start = 0;
+	int last_line_chars = 0;
 
 public:
 	InputFacade(ifstream* _input)
@@ -18,12 +36,29 @@ public:
 		input = _input;
 	}
 
+	void debug_pos(int i)
+	{
+		int lines, chars;
+		get_pos(lines, chars);
+		cout << "[" << lines << ", " << chars << "]: ";
+
+		if (i == EOF) {
+			cout << "EOF" << endl;
+		}
+		else {
+			cout << c_to_string(i) << " (" << i << ")" << endl;
+		}
+	}
+
 	int get()
 	{
 		int i = input->get();
 
+		debug_pos(i);
+
 		if (i == '\n') {
 			lines_read++;
+			last_line_chars = chars_since_line_start + 1;
 			chars_since_line_start = 0;
 		}
 		else {
@@ -48,8 +83,13 @@ public:
 
 	void get_pos(int& line, int& chars)
 	{
-		line = lines_read;
+		line = lines_read + 1;
 		chars = chars_since_line_start;
+
+		if (chars == 0) {
+			line--;
+			chars = last_line_chars;
+		}
 	}
 };
 
@@ -204,7 +244,8 @@ public:
 
 		if (write_self) {
 			output << "<h" + to_string(level + 2) + " id='" + id_str + "'>" << id_str + " " + name
-				<< "</h" + to_string(level + 2) + ">" << "\n";
+				<< "</h" + to_string(level + 2) + ">"
+				<< "\n";
 		}
 
 		TreeNode::encode_childrens(output);
