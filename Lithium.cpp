@@ -174,7 +174,11 @@ public:
 	void push_back_child(TreeNode* child)
 	{
 		child->parent = this;
+		cout << "test2" << endl;
+		cout << childrens.size() << endl;
+		cout << child << endl;
 		childrens.push_back(child);
+		cout << "test3" << endl;
 	}
 
 	void push_front_child(TreeNode* child)
@@ -235,27 +239,24 @@ public:
 		return s;
 	}
 
-	void create_child_sections(ofstream& output, bool write_self)
+	string get_h()
 	{
 		int level = id.size();
-		string id_str = get_id_str();
-
-		output << "<div class='section'>\n";
-
-		if (write_self) {
-			output << "<h" + to_string(level + 2) + " id='" + id_str + "'>" << id_str + " " + name
-				<< "</h" + to_string(level + 2) + ">"
-				<< "\n";
-		}
-
-		TreeNode::encode_childrens(output);
-
-		output << "</div>\n";
+		return "h" + to_string(level + 2);
 	}
 
 	void encode_to(ofstream& output)
 	{
-		create_child_sections(output, true);
+		output << "<div class='section'>\n";
+
+		string id_str = get_id_str();
+		output << "<" + get_h() + " id='" + id_str + "'>" << id_str + " " + name
+			<< "</" + get_h() + ">"
+			<< "\n";
+
+		TreeNode::encode_childrens(output);
+
+		output << "</div>\n";
 	}
 
 	void create_child_summary(ofstream& output)
@@ -294,7 +295,11 @@ public:
 
 	void encode_to(ofstream& output)
 	{
-		create_child_sections(output, false);
+		output << "<div class='mainSection'>\n";
+
+		TreeNode::encode_childrens(output);
+
+		output << "</div>\n";
 	}
 
 	void create_summary_entry(ofstream& output)
@@ -475,15 +480,17 @@ public:
 
 void compile(ifstream& input, ofstream& output)
 {
-	// Globals values
-	PageAuthor* author = nullptr;
-	PageTitle* title = nullptr;
-	list<Section*> sections;
+	// Creation of the facade
+	InputFacade facade(&input);
+
+	// Global vars
 	Section* current_section = new MainSection();
 	HTML root;
 
-	// Creation of the facade
-	InputFacade facade(&input);
+	// HTML Header
+	PageAuthor* author = nullptr;
+	PageTitle* title = nullptr;
+	list<Section*> sections;
 
 	// TODO: add paragraphes to sections (don't forget first p doesn't have a section)
 	// Searching tokens
@@ -519,11 +526,11 @@ void compile(ifstream& input, ofstream& output)
 
 			// Compter le niveaux de la section
 			buffer = facade.get(' ');
-			level = 0;
+			level = 1;
 			while (level < buffer.length()) {
 				// Si les niveaux et le nom ne sont pas séparer par un espace:
 				if (buffer[level] != '=') {
-					throw CompilingError("Bad section level", facade);
+					throw CompilingError("Bad section level '" + string(1, buffer[level]) + "'", facade);
 				}
 				level++;
 			}
@@ -534,19 +541,19 @@ void compile(ifstream& input, ofstream& output)
 			// Section(name, parent, parent_is_brother)
 			bool brother;
 			Section* parent;
-			if (level == current_section_level) {
-				brother = true;
-				parent = current_section;
-			}
 			// Replace with while or error if multiple indentation at once
-			else if (level > current_section_level) {
+			if (level > current_section_level) {
 				brother = false;
 				parent = current_section;
 			}
 			// Replace with while or error if multiple indentation at once
-			else {
+			else if (level < current_section_level) {
 				brother = true;
 				parent = current_section->get_parent();
+			}
+			else {
+				brother = true;
+				parent = current_section;
 			}
 
 			Section* s = new Section(name, parent, brother);
@@ -571,6 +578,8 @@ void compile(ifstream& input, ofstream& output)
 			current_section->push_back_child(p);
 		}
 	}
+
+	root.link_page_header(sections, title, author);
 
 	// Validating tree
 	root.validate();
